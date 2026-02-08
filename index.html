@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
   <head>
     <meta charset="utf-8" />
-    <title>菜單</title>
+    <title>菜單（封面單頁 + 內頁雙頁）</title>
     <meta
       name="viewport"
       content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no"
@@ -30,14 +30,11 @@
       body {
         height: 100%;
         margin: 0;
-        background: #fbf3ea; /* 外框背景 */
+        background: #fbf3ea;
         overflow: hidden;
         font-family: system-ui, "PingFang TC", "Microsoft JhengHei", sans-serif;
       }
-      /* #book {
-        visibility: hidden;
-      } */
-      /* 置中舞台：用 flex，不與 turn.js 衝突 */
+
       .viewport {
         width: 100%;
         height: 100%;
@@ -48,20 +45,49 @@
         overflow: hidden;
       }
 
-      /* 縮放容器：所有縮放/平移都套在這層 */
+      /* 縮放容器：所有縮放/平移都套在這層（沿用你原本架構） */
       .zoom-canvas {
         will-change: transform;
         transform-origin: center center;
       }
 
-      /* 書本本體 */
+      /* 封面：獨立單頁（不交給 turn.js） */
+      #coverStage {
+        width: 530px;
+        height: 840px;
+        box-shadow: 0 0 20px rgba(0, 0, 0, 0.2);
+        background: #fbf3ea;
+        position: relative;
+        cursor: pointer;
+      }
+      #coverPage {
+        width: 530px;
+        height: 840px;
+        background: #fbf3ea no-repeat center center / 100% 100%;
+      }
+      #coverHint {
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: 16px;
+        text-align: center;
+        font-size: 14px;
+        color: rgba(0, 0, 0, 0.55);
+        -webkit-user-select: none;
+        user-select: none;
+        pointer-events: none;
+      }
+
+      /* 內頁書本：從第 2 張圖開始，固定雙頁 */
+      #bookStage {
+        display: none;
+      }
       #book {
         width: 1060px; /* 530×2 */
         height: 840px;
         box-shadow: 0 0 20px rgba(0, 0, 0, 0.2);
-        background: #fbf3ea; /* 書本底色 */
+        background: #fbf3ea;
       }
-
       #book .page {
         width: 530px;
         height: 840px;
@@ -72,156 +98,123 @@
 
   <body>
     <div class="viewport" id="viewport">
-      <!-- 縮放畫布：縮放與平移都套在這層 -->
       <div class="zoom-canvas" id="zoomCanvas">
-        <div id="book">
-          <!-- 依據 pages 資料夾自動產生頁面 -->
-          <script>
-            (function () {
-              // 依pages ASC命名順序列出所有圖片檔案
-              var images = [
-                "1.jpeg",
-                "2.jpeg",
-                "3.jpeg",
-                "4.jpeg",
-                "5.jpeg",
-                "6.jpeg",
-                "7.jpeg",
-                "8.jpeg",
-                "9.jpeg",
-                "10.jpeg",
-                "11.jpeg",
-                "12.jpeg",
-                "13.jpeg",
-                "14.jpeg",
-                "15.jpeg",
-                "16.jpeg",
-                "17.jpeg",
-                "18.jpeg",
-                "19.jpeg",
-                "20.jpeg",
-                "21.jpeg",
-                "22.jpeg",
-                "23.jpeg",
-                "24.jpeg",
-                "25.jpeg",
-                "26.jpeg",
-                "27.jpeg",
-                "28.jpeg",
-                "29.jpeg",
-                "30.jpeg",
-                "31.jpeg",
-                "32.jpeg",
-                "33.jpeg",
-                "34.jpeg",
-                "35.jpeg",
-                "36.jpeg",
-                "37.jpeg",
-                "38.jpeg",
-                "39.jpeg",
-                "40.jpeg",
-                "41.jpeg",
-                "42.jpeg",
-                "43.jpeg",
-                "44.jpeg",
-                "45.jpeg",
-                "46.jpeg",
-                "47.jpeg",
-                "48.jpeg",
-              ];
+        <!-- 封面（單頁） -->
+        <div id="coverStage" aria-label="封面（點擊開啟）">
+          <div id="coverPage" class="page"></div>
+          <!-- <div id="coverHint">點擊封面開啟</div> -->
+        </div>
 
-              var book = document.getElementById("book");
-              if (book) {
-                book.innerHTML = "";
-                images.forEach(function (img) {
-                  var div = document.createElement("div");
-                  div.className = "page";
-
-                  //  修BUG(缺頁)：檔名做 URL 編碼，避免括號/空白等特殊字元造成載不到
-                  var safeName = encodeURIComponent(img);
-                  div.style.backgroundImage = "url('pages/" + safeName + "')";
-
-                  book.appendChild(div);
-                });
-
-                //  turn.js 對奇數頁數偶爾會不穩：補一頁空白讓頁數變偶數
-                if (images.length % 2 === 1) {
-                  var blank = document.createElement("div");
-                  blank.className = "page";
-                  book.appendChild(blank);
-                }
-              }
-            })();
-          </script>
+        <!-- 內頁（雙頁 turn.js） -->
+        <div id="bookStage">
+          <div id="book"></div>
         </div>
       </div>
     </div>
 
     <script>
+      // 依 pages ASC 命名順序列出所有圖片檔案（沿用原本名單）
+      const ALL_IMAGES = [
+        "1.jpg",
+        "2.jpg",
+        "3.jpg",
+        "4.jpg",
+        "5.jpg",
+        "6.jpg",
+        "7.jpg",
+        "8.jpg",
+        "9.jpg",
+        "10.jpg",
+        "11.jpg",
+        "12.jpg",
+        "13.jpg",
+        "14.jpg",
+        "15.jpg",
+        "16.jpg",
+        "17.jpg",
+        "18.jpg",
+        "19.jpg",
+        "20.jpg",
+        "21.jpg",
+        "22.jpg",
+        "23.jpg",
+        "24.jpg",
+        "25.jpg",
+        "26.jpg",
+        "27.jpg",
+        "28.jpg",
+        "29.jpg",
+        "30.jpg",
+        "31.jpg",
+        "32.jpg",
+        "33.jpg",
+        "34.jpg",
+        "35.jpg",
+        "36.jpg",
+        "37.jpg",
+        "38.jpg",
+        "39.jpg",
+        "40.jpg"
+      ];
+
       function initWhenReady() {
         if (typeof jQuery === "undefined" || !jQuery.fn)
           return setTimeout(initWhenReady, 50);
+        if (typeof jQuery.fn.turn !== "function") return setTimeout(initWhenReady, 100);
 
-        if (typeof jQuery.fn.turn !== "function") {
-          return setTimeout(initWhenReady, 100);
-        }
-
-        const $book = $("#book");
         const viewport = document.getElementById("viewport");
         const canvas = document.getElementById("zoomCanvas");
+        const coverStage = document.getElementById("coverStage");
+        const coverPage = document.getElementById("coverPage");
+        const bookStage = document.getElementById("bookStage");
+        const bookEl = document.getElementById("book");
+        const $book = $("#book");
 
-        // 初始化翻頁（交給 CSS 置中，所以關掉 autoCenter）
-        $book.turn({
-          width: 1060,
-          height: 840,
-          elevation: 50,
-          gradients: true,
-          autoCenter: false,
+        // 設置封面圖片（第 1 張）
+        const coverImg = ALL_IMAGES[0];
+        coverPage.style.backgroundImage =
+          "url('pages/" + encodeURIComponent(coverImg) + "')";
+
+        // 內頁圖片（從第 2 張開始）
+        const innerImages = ALL_IMAGES.slice(1);
+
+        // 產生 turn.js 頁面 DOM
+        bookEl.innerHTML = "";
+        let pageCount = 0;
+
+        // 第 1 頁：留白（讓真正內容從第 2 頁起，形成「左 2 / 右 3」的攤頁）
+        const firstBlank = document.createElement("div");
+        firstBlank.className = "page";
+        bookEl.appendChild(firstBlank);
+        pageCount++;
+
+        innerImages.forEach(function (img) {
+          const div = document.createElement("div");
+          div.className = "page";
+          div.style.backgroundImage =
+            "url('pages/" + encodeURIComponent(img) + "')";
+          bookEl.appendChild(div);
+          pageCount++;
         });
-        document.getElementById("book").style.visibility = "visible";
+        // 確保總頁數為偶數，避免 turn.js 不穩
+        if (pageCount % 2 === 1) {
+          const blank = document.createElement("div");
+          blank.className = "page";
+          bookEl.appendChild(blank);
+        }
 
-        // === 縮放/平移引擎（rAF 平滑 + GPU 加速 + 游標中心縮放）===
-        const BASE_W = 1060,
+        // ===== 縮放/平移（沿用原本邏輯；基準寬度用目前舞台寬度）=====
+        const SINGLE_W = 530,
+          DOUBLE_W = 1060,
           BASE_H = 840;
-        let baseScale = 1; // 視窗自適應倍率
-        let scale = 1; // 使用者縮放倍率（MIN..MAX）
+        let BASE_W = SINGLE_W; // 會隨封面/內頁切換
+        let baseScale = 1;
+        let scale = 1;
         let tx = 0,
-          ty = 0; // 平移（視窗中心為原點）
+          ty = 0;
         const MAX_ZOOM = 16,
           MIN_ZOOM = 1;
 
-        //修BUG(自己放大)：避免「連點翻頁」觸發 dblclick 縮放
-        // 只允許「雙擊背景」縮放；若想在書上縮放，按住 Shift 再雙擊
-        viewport.addEventListener(
-          "dblclick",
-          function (e) {
-            const onBook = !!e.target.closest("#book");
-            if (onBook && !e.shiftKey) return;
-
-            const rect = viewport.getBoundingClientRect();
-            const cx = e.clientX - rect.left - rect.width / 2;
-            const cy = e.clientY - rect.top - rect.height / 2;
-            const target = scale > 1.01 ? 1 : 2;
-            const sOld = scale,
-              sNew = target;
-
-            const contentX = (cx - tx) / (baseScale * sOld);
-            const contentY = (cy - ty) / (baseScale * sOld);
-
-            scale = sNew;
-            tx = cx - contentX * (baseScale * sNew);
-            ty = cy - contentY * (baseScale * sNew);
-            schedule();
-          },
-          { passive: true }
-        );
-
-        //  修BUG(自己放大)：阻止頁面 click 冒泡到 viewport（降低被判定成 dblclick 的機率）
-        $book.on("click", ".page", function (e) {
-          e.stopPropagation();
-        });
-
-        // GPU 加速提示
         canvas.style.willChange = "transform";
 
         function computeBaseScale() {
@@ -251,20 +244,53 @@
           clampPan();
           const s = baseScale * scale;
           canvas.style.transform = `translate3d(${tx}px, ${ty}px, 0) scale(${s})`;
-          canvas.classList.toggle("zoomed", scale > 1.001);
         }
         function schedule() {
           if (!rafId) rafId = requestAnimationFrame(applyTransform);
         }
 
-        // 初始化
-        function onResize() {
+        function resetView() {
+          scale = 1;
+          tx = 0;
+          ty = 0;
           computeBaseScale();
           schedule();
         }
-        window.addEventListener("resize", onResize, { passive: true });
-        computeBaseScale();
-        schedule();
+
+        window.addEventListener(
+          "resize",
+          function () {
+            computeBaseScale();
+            schedule();
+          },
+          { passive: true }
+        );
+
+        // 雙擊縮放：封面/內頁共用
+        viewport.addEventListener(
+          "dblclick",
+          function (e) {
+            const onBook = !!e.target.closest("#book");
+            const onCover = !!e.target.closest("#coverStage");
+            if (!onBook && !onCover) return;
+
+            const rect = viewport.getBoundingClientRect();
+            const cx = e.clientX - rect.left - rect.width / 2;
+            const cy = e.clientY - rect.top - rect.height / 2;
+            const target = scale > 1.01 ? 1 : 2;
+            const sOld = scale,
+              sNew = target;
+
+            const contentX = (cx - tx) / (baseScale * sOld);
+            const contentY = (cy - ty) / (baseScale * sOld);
+
+            scale = sNew;
+            tx = cx - contentX * (baseScale * sNew);
+            ty = cy - contentY * (baseScale * sNew);
+            schedule();
+          },
+          { passive: true }
+        );
 
         // 拖曳平移（放大狀態才啟動）
         let dragging = false,
@@ -297,40 +323,47 @@
         viewport.addEventListener("pointerup", endDrag);
         viewport.addEventListener("pointercancel", () => (dragging = false));
 
-        // 若仍存在舊的 zoom 按鈕，容錯處理（大多已移除）
-        function zoomBy(f) {
-          const sOld = scale,
-            sNew = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, sOld * f));
-          const cx = 0,
-            cy = 0; // 以中心
-          const contentX = (cx - tx) / (baseScale * sOld);
-          const contentY = (cy - ty) / (baseScale * sOld);
-          scale = sNew;
-          tx = cx - contentX * (baseScale * sNew);
-          ty = cy - contentY * (baseScale * sNew);
-          schedule();
+        // ===== 封面 -> 內頁：切換舞台並初始化 turn.js（固定雙頁）=====
+        let bookInited = false;
+        function openBook() {
+          // 第一次才初始化 turn.js，之後只切換顯示
+          if (!bookInited) {
+            bookInited = true;
+
+            $book.turn({
+              width: DOUBLE_W,
+              height: BASE_H,
+              elevation: 50,
+              gradients: true,
+              autoCenter: false,
+              display: "double",
+              // 直接打開在第 2 頁，看到「左 2 / 右 3」這個攤頁
+              page: 2,
+            });
+
+            // 如果使用者想再往「前一頁」，就改為關書回到封面
+            $book.bind("turning", function (event, page) {
+              if (page === 1) {
+                event.preventDefault();
+                // 關書，回封面
+                bookStage.style.display = "none";
+                coverStage.style.display = "block";
+                BASE_W = SINGLE_W;
+                resetView();
+              }
+            });
+          }
+
+          // 顯示內頁舞台
+          coverStage.style.display = "none";
+          bookStage.style.display = "block";
+          BASE_W = DOUBLE_W;
+          resetView();
         }
-        ["zoomIn", "zoomOut", "zoomReset"].forEach((id, idx) => {
-          const el = document.getElementById(id);
-          if (!el) return;
-          if (idx === 0) el.onclick = () => zoomBy(1.2);
-          if (idx === 1) el.onclick = () => zoomBy(1 / 1.2);
-          if (idx === 2)
-            el.onclick = () => {
-              scale = 1;
-              tx = 0;
-              ty = 0;
-              schedule();
-            };
-        });
 
-        // 翻頁控制
-        document.addEventListener("keydown", (e) => {
-          if (e.key === "ArrowLeft") $book.turn("previous");
-          if (e.key === "ArrowRight") $book.turn("next");
-        });
+        coverStage.addEventListener("click", openBook, { passive: true });
 
-        //  翻頁點擊（維持你原本邏輯；但已在上面 stopPropagation 了）
+        // 內頁翻頁點擊（沿用你原本邏輯）
         $book.on("click", ".page", function (e) {
           const pageWidth = $(this).width();
           const clickX = e.offsetX;
@@ -340,8 +373,21 @@
             $book.turn("next");
           }
         });
+
+        // 鍵盤翻頁（僅內頁有效）
+        document.addEventListener("keydown", (e) => {
+          if (!bookInited) return;
+          if (e.key === "ArrowLeft") $book.turn("previous");
+          if (e.key === "ArrowRight") $book.turn("next");
+        });
+
+        // 初始：封面單頁
+        BASE_W = SINGLE_W;
+        resetView();
       }
+
       initWhenReady();
     </script>
   </body>
 </html>
+
