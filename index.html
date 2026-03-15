@@ -114,48 +114,11 @@
 
     <script>
       // 依 pages ASC 命名順序列出所有圖片檔案（沿用原本名單）
-      const ALL_IMAGES = [
-        "1.jpg",
-        "2.jpg",
-        "3.jpg",
-        "4.jpg",
-        "5.jpg",
-        "6.jpg",
-        "7.jpg",
-        "8.jpg",
-        "9.jpg",
-        "10.jpg",
-        "11.jpg",
-        "12.jpg",
-        "13.jpg",
-        "14.jpg",
-        "15.jpg",
-        "16.jpg",
-        "17.jpg",
-        "18.jpg",
-        "19.jpg",
-        "20.jpg",
-        "21.jpg",
-        "22.jpg",
-        "23.jpg",
-        "24.jpg",
-        "25.jpg",
-        "26.jpg",
-        "27.jpg",
-        "28.jpg",
-        "29.jpg",
-        "30.jpg",
-        "31.jpg",
-        "32.jpg",
-        "33.jpg",
-        "34.jpg",
-        "35.jpg",
-        "36.jpg",
-        "37.jpg",
-        "38.jpg",
-        "39.jpg",
-        "40.jpg"
-      ];
+      // 迴圈 1~59
+      const ALL_IMAGES = [];
+      for (let i = 1; i <= 59 ; i++) {
+        ALL_IMAGES.push(i + ".jpg");
+      }
 
       function initWhenReady() {
         if (typeof jQuery === "undefined" || !jQuery.fn)
@@ -192,7 +155,7 @@
           const div = document.createElement("div");
           div.className = "page";
           div.style.backgroundImage =
-            "url('pages/" + encodeURIComponent(img) + "')";
+            "url('pages_compressed/" + encodeURIComponent(img) + "')";
           bookEl.appendChild(div);
           pageCount++;
         });
@@ -323,6 +286,29 @@
         viewport.addEventListener("pointerup", endDrag);
         viewport.addEventListener("pointercancel", () => (dragging = false));
 
+        // ===== Lazy-load 圖片函式 =====
+        function loadPageImages(pageNumber) {
+          // 載入指定頁面及其鄰近頁面（前後各一頁）
+          const pagesToLoad = [pageNumber - 1, pageNumber, pageNumber + 1];
+          
+          pagesToLoad.forEach(function(p) {
+            if (p < 1) return; // 跳過無效頁碼
+            
+            const $page = $book.find(".page").eq(p - 1); // turn.js 頁碼從 1 開始，DOM 索引從 0 開始
+            if (!$page.length) return;
+            
+            const pageEl = $page.get(0);
+            if (pageEl.dataset.loaded) return; // 已載入，跳過
+            
+            const imgUrl = pageEl.dataset.src;
+            if (!imgUrl) return; // 沒有圖片 URL（如空白頁）
+            
+            // 設定背景圖片，開始載入
+            pageEl.style.backgroundImage = "url('" + imgUrl + "')";
+            pageEl.dataset.loaded = "1";
+          });
+        }
+
         // ===== 封面 -> 內頁：切換舞台並初始化 turn.js（固定雙頁）=====
         let bookInited = false;
         function openBook() {
@@ -341,7 +327,7 @@
               page: 2,
             });
 
-            // 如果使用者想再往「前一頁」，就改為關書回到封面
+            // 翻頁時預載鄰近頁面
             $book.bind("turning", function (event, page) {
               if (page === 1) {
                 event.preventDefault();
@@ -350,8 +336,16 @@
                 coverStage.style.display = "block";
                 BASE_W = SINGLE_W;
                 resetView();
+              } else {
+                // 預載即將顯示的頁面及其鄰近頁
+                loadPageImages(page);
               }
             });
+            
+            // 初始化後立即載入起始頁（第 2 頁及其鄰近頁）
+            setTimeout(function() {
+              loadPageImages(2);
+            }, 100);
           }
 
           // 顯示內頁舞台
